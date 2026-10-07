@@ -1,0 +1,1 @@
+# Data\n\nReal laboratory datasets go here later. Do not overwrite synthetic benchmark logic with undocumented measurements.\n
