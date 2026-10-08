@@ -1,6 +1,6 @@
 # Canonical Project Requirements
 
-Revision: R001  
+Revision: R002  
 Status: active
 
 This file is the compact source of truth for accepted requirements supplied to every Technology Description generation. Detailed rationale remains in source specs and `change-log.md`.
@@ -43,3 +43,15 @@ This file is the compact source of truth for accepted requirements supplied to e
 - Every generation consumes a pinned chemistry repo revision.
 - Previous generated prose is lower authority than accepted requirements and verified evidence.
 - Missing facts remain TBD/questions rather than being fabricated.
+
+
+## Technology Description presentation mode
+- The generated Technology Description is written as the **final target technology**, suitable for expert review and format/content alignment.
+- It must read as a coherent completed technical system, not as a development status report.
+- Do not write TBD, “not yet determined”, “will be selected later”, “after data is collected”, “future work is required”, or equivalent incompleteness language in the generated Technology Description.
+- Describe architecture, process, measurement, formulation-selection logic and validation workflow in present/perfect technical form.
+- Do not include an “unknowns/missing data” section in the expert-facing document.
+- Do not expose internal bootstrap status, synthetic CI benchmark status, repository implementation status, or model-development sequencing in the expert-facing document.
+- **Do not fabricate experimental facts or numerical performance.** A final-form description may state the validated procedure/design logic without inventing test counts, winning formulations, percentages, certifications or measured values.
+- Concrete performance numbers/results may be written as facts only when they are supplied as accepted requirements/evidence. Otherwise use technically complete non-numerical wording or agreed target/range wording without claiming an experiment occurred.
+- Separate internal R&D planning documents may continue to track uncertainty, missing inputs and experiment plans; those are not part of the expert-facing Technology Description.
