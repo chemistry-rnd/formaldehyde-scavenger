@@ -17,3 +17,12 @@ Accepted changes:
 - The reusable generation engine belongs in rnd-forge.
 
 First generated architecture incorporating this revision: `technology-description/versions/v001.md`.
+
+
+## R002 — 2026-10-08 — Final-form expert-facing document mode
+
+Accepted clarification:
+- Technology Description represents the final target technology for expert review, not current implementation status.
+- Remove TBD/status/future-selection/missing-data language from generated expert-facing versions.
+- Internal uncertainty and experiment planning remain in separate R&D documents.
+- Final-form wording must not be used to fabricate experimental results, measured performance, certifications, or completed tests that are not supplied as evidence.
