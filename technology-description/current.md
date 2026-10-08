@@ -1,484 +1,365 @@
-# Technical Architecture — Post-install Formaldehyde Scavenger
+# Техническое описание технологии обработки свежих срезов ДСП/МДФ
 
-Version: v001  
-Status: working draft for human review  
-Generated from: product specification + discovery/measurement specification + active requirement log  
-Evidence status: architecture/hypotheses only; no formulation efficacy is asserted
+Версия: v002  
+Статус: первый рабочий драфт для ревью заказчиком  
+Основание: требования R001, product-spec v0.2, discovery/metrics v0.1  
+Важно: документ описывает планируемую технологию и программу R&D. Реальная эффективность конкретного состава пока не подтверждена экспериментальными данными.
 
-## 1. Purpose
+## 1. Предмет разработки
 
-Develop an R&D system for discovering a practical composition that can be applied by a furniture installer to **fresh particleboard/MDF cuts created at the customer's premises during installation** and that reduces formaldehyde emission from those exposed surfaces.
+Разрабатывается технология локальной обработки свежих открытых срезов древесных плит, прежде всего ДСП и МДФ, которые возникают непосредственно у заказчика во время подгонки и монтажа мебели.
 
-The project is not limited to finding one candidate recipe. Its core technical objective is to build a reproducible discovery loop that:
+Основной объект обработки — новый срез, выполненный монтажником внутри квартиры или другого помещения. Заводские поверхности и заранее подготовленные кромки обычно уже ламинированы, оклеены или иным образом закрыты и не являются главным объектом данной разработки. Отверстия под крепёж и фурнитуру рассматриваются как дополнительный, вторичный случай.
 
-1. defines a chemically admissible formulation space;
-2. generates many formulation variants;
-3. measures or predicts multiple product properties;
-4. identifies important component concentrations, ratios and interaction effects;
-5. selects a small, informative set of laboratory experiments;
-6. learns from those measurements and iterates;
-7. preserves evidence and uncertainty so later technical descriptions can distinguish measured facts from hypotheses.
+Технология должна включать:
 
-Drilled and fastener holes are a secondary application case. Factory-prepared surfaces are not the primary target.
+1. жидкий или иной наносимый тонким слоем состав;
+2. способ дозированного нанесения на открытую поверхность плиты;
+3. режим высыхания, совместимый с обычным монтажом мебели;
+4. методику контроля снижения эмиссии формальдегида;
+5. систему подбора состава по результатам лабораторных испытаний.
 
-## 2. System boundaries
+На первом этапе специальное устройство нанесения не требуется: состав должен допускать простое ручное применение. Профессиональный дозирующий аппликатор рассматривается как отдельное последующее направление R&D.
 
-The project consists of three related but separable technical systems.
+## 2. Целевая функция технологии
 
-### 2.1 Chemistry discovery system
+Главная функция обработки — снизить поступление формальдегида из свежего открытого среза в воздух помещения в наиболее значимый период после монтажа, ориентировочно в первые 1–3 месяца.
 
-Owns formulation-space definition, candidate generation, experimental data, property models, uncertainty, multi-objective optimization and active learning.
+Механизм конечного состава пока не фиксируется. В рамках R&D допускаются решения, в которых снижение эмиссии достигается химическим связыванием формальдегида, ограничением его переноса через обработанную поверхность либо сочетанием механизмов.
 
-### 2.2 Measurement and validation system
+Выбор механизма должен определяться экспериментами, а не заранее выбранной рецептурой.
 
-Owns experimental protocols and raw observations for formaldehyde emission, odor, drying, dimensional change, visible effects, compatibility, application workflow and cost-related consumption.
+## 3. Эксплуатационный сценарий
 
-### 2.3 Application system
-
-Initially this is a simple manual application process suitable for an installer. A controlled-dose professional applicator is a later R&D direction and must not be required for the first chemistry-discovery cycle.
-
-The technical-document generator is outside this repository's scientific architecture. It lives in `rnd-forge` and consumes versioned requirements/evidence from this repository.
-
-## 3. Product use architecture
+Рабочий сценарий технологии:
 
 ```text
-factory-prepared furniture board
-              │
-              ▼
-delivery to customer premises
-              │
-              ▼
-on-site fitting / additional cutting
-              │
-              ▼
-fresh exposed particleboard/MDF cut
-              │
-              ▼
-apply controlled amount of treatment
-              │
-              ▼
-rapid drying / continuation of installation
-              │
-              ▼
-treated cut during first 1–3 months
-              │
-              ▼
-measure reduced HCHO emission vs matched untreated control
-```
-
-The formulation must therefore be optimized not only for chemical formaldehyde capture, but for the complete on-site process.
-
-## 4. Formulation model
-
-A formulation is represented as structured data rather than free text.
-
-At minimum:
-
-```text
-Formulation
-├── components[]
-│   ├── identity
-│   ├── functional role
-│   ├── mass fraction / concentration
-│   ├── provenance
-│   └── safety/compatibility evidence state
-├── carrier
-├── formulation-state variables
-│   └── e.g. pH where relevant
-├── application dose
-└── process conditions
-```
-
-Expected functional roles may include:
-
-- formaldehyde scavenger;
-- binder/barrier component;
-- carrier;
-- wetting aid;
-- stabilizer;
-- other functional additive.
-
-These are roles in the search schema, not a claim that every final formulation requires every role.
-
-All numerical candidate generation must obey mass balance and explicit min/max/combination constraints.
-
-## 5. Search-space generation
-
-### 5.1 Chemical admissibility layer
-
-Before numerical mixture generation, candidate components and combinations are filtered by known constraints:
-
-- permitted/prohibited chemistry;
-- known hazard evidence;
-- compatibility evidence;
-- room-temperature/on-site applicability;
-- formulation stability constraints;
-- known incompatibilities;
-- practical sourcing/cost constraints.
-
-Unknown evidence is represented as `unresolved`, never silently treated as safe or compatible.
-
-### 5.2 Mixture Design of Experiments
-
-The initial candidate matrix is generated deterministically using mixture-aware Design of Experiments.
-
-The design should cover:
-
-- useful boundaries of allowed concentrations;
-- interior mixture space;
-- pairwise component ratios;
-- suspected interactions;
-- process/application-dose variation where relevant;
-- controls and replicates.
-
-An LLM may help propose chemical families or hypotheses, but it must not be the numerical formulation generator.
-
-### 5.3 Large virtual candidate space
-
-Once enough measurements exist to support models, the system can generate a much larger virtual candidate population.
-
-Each candidate receives:
-
-- predicted endpoints;
-- uncertainty;
-- feasibility/gate state;
-- applicability/domain-distance indicator where available.
-
-The objective is not merely to find the highest predicted score. The system must expose stable **regions** of formulation space and the relationships that produce them.
-
-## 6. Property and measurement architecture
-
-Each human product requirement maps to one or more independently stored endpoints.
-
-### 6.1 Formaldehyde efficacy
-
-Primary comparison:
-
-`reduction(t) = 1 - treated_emission(t) / matched_control_emission(t)`
-
-Candidate time points: initial/day 1, day 7, day 30 and day 90.
-
-Derived endpoints:
-
-- absolute formaldehyde emission;
-- reduction at each age;
-- integrated 0–90 day emission / AUC;
-- integrated reduction versus control;
-- persistence/decay of treatment effect.
-
-The main optimization must not reward a formulation that performs strongly only immediately after application.
-
-### 6.2 Odor
-
-“Does not smell” is not represented by one synthetic score.
-
-Two measurement channels are maintained:
-
-**Instrumental emissions**
-- TVOC where appropriate;
-- relevant individual VOCs;
-- formaldehyde separately;
-- other relevant aldehydes/volatiles suggested by the actual formulation chemistry.
-
-**Sensory assessment**
-- perceived odor intensity;
-- acceptability;
-- optionally hedonic tone;
-- treatment-specific odor detection rate.
-
-These measurements remain separate in the raw dataset. A product gate may later combine them only after a real acceptance criterion is agreed.
-
-### 6.3 Drying and workflow
-
-Store separately:
-
-- tack-free time;
-- handling-ready time;
-- process-ready time;
-- optionally drying/mass-loss curve.
-
-The operational threshold is TBD with installers/manufacturer.
-
-### 6.4 Dimensional effect
-
-Measure:
-
-- thickness change in mm;
-- relative thickness change;
-- mass uptake;
-- local deformation where relevant;
-- residual change after drying.
-
-Transient wet swelling and permanent dimensional change are distinct endpoints.
-
-### 6.5 Visible effects
-
-Measure where relevant:
-
-- color difference;
-- gloss difference;
-- residue/staining assessment;
-- accidental-contact/cleanup result on finished surfaces.
-
-### 6.6 Compatibility
-
-Compatibility is represented as a matrix by material/system, including as relevant:
-
-- laminate/melamine;
-- edge banding and adhesive;
-- silicone/sealants;
-- fittings/metals;
-- later adhesive operations.
-
-A single universal “compatibility score” should not replace the underlying tests.
-
-### 6.7 Safety
-
-Safety is primarily a **hard evidence gate**, not an ML-generated score.
-
-Evidence may include ingredient classification/SDS, exposure conditions, emissions, pH/irritation-relevant properties and applicable regulatory/occupational requirements.
-
-Unknown safety evidence remains unresolved.
-
-### 6.8 Cost and consumption
-
-Core calculation:
-
-`cost_per_treated_area = formulation_cost_per_mass × applied_mass_per_area`
-
-Derived business metrics can include cost per metre of cut and cost per typical order once representative board thicknesses/geometries are known.
-
-### 6.9 Installer usability
-
-Possible measured endpoints:
-
-- application time per metre/cut;
-- dose variance between operators;
-- overspread/error rate;
-- coverage completeness;
-- cleanup time;
-- number of process steps.
-
-These measurements later provide requirements for a dedicated applicator.
-
-## 7. Experimental data model
-
-Every raw observation must retain enough context to reproduce and compare it.
-
-Minimum experiment identity:
-
-```text
-experiment_id
-formulation_id + formulation batch
-component identities/lots/fractions
-substrate product/type/batch
-cut geometry + exposed area
-application dose + method + operator
-temperature + relative humidity
-time since treatment
-protocol version
-raw endpoint + unit
-control/replicate relationship
-measurement uncertainty / detection limit
-notes/anomalies
-```
-
-Raw observations are immutable. Normalized scores and derived features are separate computed datasets.
-
-Synthetic CI fixtures and real measurements must be physically/logically separated and carry an explicit data-source type.
-
-## 8. Modelling architecture
-
-The modelling layer is endpoint-oriented rather than one monolithic “material quality” model.
-
-For each sufficiently populated endpoint:
-
-```text
-experimental observations
+плита с заводской отделкой
         ↓
-surrogate/property model
+доставка и монтаж у клиента
         ↓
-prediction + uncertainty
+подгонка детали / новый распил
         ↓
-cross-validation / applicability check
+свежий открытый срез
+        ↓
+нанесение заданного количества состава
+        ↓
+короткий период высыхания
+        ↓
+продолжение сборки/монтажа
+        ↓
+остаточная работа обработки в течение недель/месяцев
 ```
 
-For early small-to-medium datasets, Gaussian Processes are a preferred candidate because uncertainty is first-class. Tree/ensemble models can provide nonlinear cross-checks.
+Процесс должен быть рассчитан на работу обычного монтажника и не предполагать лабораторного или сложного промышленного оборудования на адресе.
 
-A model is not required for an endpoint with insufficient data. The valid output is `insufficient_evidence`.
+## 4. Ключевые требования к составу
 
-Chemistry-specific molecular models, MACE/DFT or other expensive simulation layers are optional later additions when a concrete question and suitable representation justify them.
+### 4.1 Эффективность по формальдегиду
 
-## 9. Ratio and interaction analysis
+Требуется устойчивое снижение эмиссии относительно сопоставимого необработанного свежего среза.
 
-This is a first-class output, not a visualization added after optimization.
+Необходимо оценивать не только мгновенный эффект после нанесения, но и его сохранение во времени.
 
-For each meaningful component pair/system, estimate:
+Предварительные точки наблюдения:
 
-- response versus concentration;
-- response versus component ratio;
-- pairwise interaction;
-- diminishing-return region;
-- antagonistic region;
-- robustness around promising regions;
-- uncertainty throughout the map.
+- первые сутки;
+- 7 суток;
+- 30 суток;
+- 90 суток.
 
-Preferred output:
+Численное целевое снижение пока не установлено и должно быть согласовано после получения исходных данных производителя и выбора методики испытаний.
 
-> “Under the measured domain, useful A:B ratios cluster in range X–Y and remain robust across binder range Z.”
+### 4.2 Толщина и размер детали
 
-rather than:
+После обработки не должна возникать практически значимая дополнительная толщина покрытия или остаточное изменение размеров детали.
 
-> “Recipe 1837 is best.”
+Отдельно должны контролироваться:
 
-No numerical range is reported as real until supported by experimental data.
+- временное набухание во влажном состоянии;
+- остаточное изменение толщины после высыхания;
+- локальная деформация края.
 
-## 10. Multi-objective decision architecture
+Допустимые пределы — TBD.
 
-### 10.1 Hard feasibility gates
+### 4.3 Скорость высыхания
 
-Examples:
+Состав не должен создавать существенную паузу в монтажном процессе.
 
-- prohibited/unresolved critical safety state;
-- unacceptable material damage;
-- critical compatibility failure;
-- impossible on-site process conditions.
+Вместо одного неопределённого показателя «высох» предлагается измерять:
 
-Exact gates/thresholds are TBD.
+- время до отсутствия липкости;
+- время до безопасного касания/перемещения детали;
+- время до возможности продолжить следующую монтажную операцию.
 
-### 10.2 Pareto objectives
+Максимально допустимое время необходимо определить вместе с монтажниками.
 
-Among feasible candidates, optimize multiple endpoints without immediately hiding trade-offs inside one weighted score:
+### 4.4 Запах
 
-- sustained formaldehyde reduction;
-- persistence;
-- odor acceptability/emissions;
-- drying/process time;
-- dimensional effect;
-- cost;
-- visible effects;
-- robustness to dose/operator variation.
+Требование «не пахнет» разделяется на два независимых блока.
 
-The system produces a Pareto frontier and explicit trade-offs.
+**Инструментальный блок:** содержание/эмиссия формальдегида, TVOC и конкретных летучих соединений, релевантных фактическому составу.
 
-## 11. Active-learning loop
+**Сенсорный блок:** воспринимаемая интенсивность запаха и приемлемость запаха человеком в заданный момент после нанесения.
+
+Состав не должен считаться приемлемым только потому, что имеет низкий TVOC: человеческое восприятие запаха проверяется отдельно.
+
+Численные критерии приемлемости — TBD.
+
+### 4.5 Безопасность
+
+Безопасность является ограничением допуска, а не оптимизируемым «AI score».
+
+Для каждого компонента и затем для конечной рецептуры должны учитываться доступные данные по классификации опасности, пути воздействия, концентрации, летучим выбросам и условиям применения.
+
+Отсутствие данных означает `не проверено`, а не `безопасно`.
+
+### 4.6 Совместимость
+
+Состав не должен создавать неприемлемых изменений при контакте с типичными материалами монтажа.
+
+Матрица испытаний должна включать релевантные для производителя:
+
+- ламинированные/меламиновые поверхности;
+- кромочные материалы и клеевые системы;
+- силиконы и герметики;
+- металлическую и пластиковую фурнитуру;
+- последующие клеевые операции, если состав может попасть в соответствующую зону.
+
+### 4.7 Видимые следы
+
+При штатном нанесении и при реалистичном случайном попадании на соседнюю отделанную поверхность не должно оставаться заметных пятен, изменения цвета, блеска или трудноудаляемого остатка.
+
+### 4.8 Стоимость
+
+Экономика оценивается не только по цене килограмма состава, а по фактическому расходу:
+
+`стоимость обработки = стоимость единицы массы × масса нанесения`.
+
+После получения типовых размеров деталей рассчитываются стоимость квадратного метра среза, погонного метра среза и типового заказа.
+
+## 5. Архитектура поиска рецептуры
+
+Цель вычислительной части — не сгенерировать один «лучший рецепт», а построить карту пространства рецептур.
+
+### 5.1 Пространство компонентов
+
+Каждый компонент описывается структурированно:
+
+- химическая идентичность;
+- функциональная роль;
+- допустимый диапазон концентрации;
+- ограничения сочетания с другими компонентами;
+- известные данные по безопасности;
+- известные данные по совместимости;
+- стоимость и доступность;
+- источник/доказательство включения в пространство поиска.
+
+Предполагаемые функциональные роли могут включать scavenger формальдегида, связующий/барьерный компонент, носитель, смачивающую добавку и стабилизатор. Этот перечень является схемой поиска, а не обязательным составом продукта.
+
+### 5.2 Генерация вариантов
+
+Численные рецептуры формируются алгоритмически с соблюдением материального баланса и ограничений.
+
+Для первой экспериментальной серии используется mixture Design of Experiments, покрывающий:
+
+- допустимые границы концентраций;
+- внутренние области смеси;
+- интересующие отношения пар компонентов;
+- предполагаемые взаимодействия;
+- контрольные образцы;
+- повторы.
+
+LLM может использоваться для исследования литературы, формирования химических гипотез и объяснения результатов, но не должен самостоятельно придумывать численные экспериментальные результаты.
+
+### 5.3 Массовый виртуальный перебор
+
+После накопления достаточного количества реальных измерений обучаются surrogate/property models. Они позволяют оценивать значительно больше рецептур, чем возможно физически испытать.
+
+Для каждого виртуального кандидата должны возвращаться:
+
+- прогноз каждого поддерживаемого свойства;
+- неопределённость;
+- состояние hard gates;
+- показатель нахождения внутри/вне изученной области, если модель это поддерживает.
+
+## 6. Анализ ключевых соотношений
+
+Это отдельный обязательный результат проекта.
+
+Система должна определять не только влияние отдельных концентраций, но и:
+
+- отношения компонентов A:B;
+- парные взаимодействия;
+- синергетические области;
+- антагонистические сочетания;
+- области насыщения, где увеличение концентрации почти не улучшает эффект;
+- устойчивость результата к небольшому изменению рецептуры.
+
+Желаемый результат исследования имеет вид:
+
+> В исследованной области отношение компонентов A:B в диапазоне X–Y обеспечивает устойчивую область характеристик при диапазоне компонента C = Z–W.
+
+До появления реальных измерений X, Y, Z и W не задаются.
+
+## 7. Лабораторная петля
 
 ```text
-requirements + admissible chemistry
-              ↓
-      mixture DoE / candidates
-              ↓
-       laboratory batch
-              ↓
-     immutable raw results
-              ↓
-     endpoint surrogate models
-              ↓
- ratios + interactions + Pareto + uncertainty
-              ↓
- select next experiments:
-   ├── promising
-   ├── uncertain
-   ├── hypothesis-discriminating
-   └── controls/replicates
-              ↓
-             repeat
+допустимое химическое пространство
+            ↓
+mixture DoE
+            ↓
+небольшая партия рецептур
+            ↓
+испытания на одинаковых срезах
+            ↓
+сырые измерения + controls + metadata
+            ↓
+модели отдельных свойств
+            ↓
+uncertainty + ratios + interactions + Pareto
+            ↓
+следующая наиболее информативная партия
+            ↺
 ```
 
-The next batch should maximize useful information per laboratory experiment, not merely test predicted winners.
+Следующая серия выбирается не только из ожидаемых лидеров. В неё должны входить:
 
-## 12. Application-device extension
+- перспективные рецептуры;
+- рецептуры с высокой полезной неопределённостью;
+- точки, различающие конкурирующие гипотезы;
+- необходимые повторы и контроли.
 
-A later professional applicator may control and record dose, reduce operator variance, accelerate treatment and simplify cleanup.
+## 8. Модель экспериментальных данных
 
-Potential electronics/sensors/chip are justified only if they improve a measurable process property such as:
+Каждый опыт должен сохранять как минимум:
 
-- dose accuracy;
-- coverage verification;
-- consumption logging;
-- traceability;
-- maintenance/refill workflow.
+- идентификатор рецептуры и партии;
+- точные компоненты и концентрации;
+- тип/производителя/партию плиты;
+- геометрию и площадь свежего среза;
+- массу/дозу нанесения;
+- метод нанесения и оператора;
+- температуру и относительную влажность;
+- время после нанесения;
+- версию протокола;
+- сырое измеренное значение и единицу;
+- связь с контрольным образцом/повтором;
+- неопределённость или предел обнаружения, если применимо;
+- замечания об отклонениях.
 
-Device development is a separate workstream. Chemistry v1 must remain testable and usable with a simple manual application method.
+Исходные измерения не заменяются нормализованными баллами. Производные показатели рассчитываются отдельно.
 
-## 13. Repository / document architecture
+## 9. Основная метрика эффективности
 
-This chemistry repository is the source of truth for the **project state**.
+Для сопоставимых обработанного и контрольного образцов:
 
-Recommended structure:
+`reduction(t) = 1 - emission_treated(t) / emission_control(t)`.
+
+Кроме отдельных временных точек рассчитывается интегральная эмиссия за выбранный период и её снижение относительно контроля.
+
+Это позволяет отличить долговременный scavenging/barrier effect от кратковременного снижения сразу после нанесения.
+
+Конкретный лабораторный метод и единицы должны быть выбраны отдельно.
+
+## 10. Многокритериальный выбор
+
+Сначала применяются hard gates: безопасность, запрещённые компоненты, критическое повреждение материала, критическая несовместимость и невозможность применения в заданном процессе.
+
+Для прошедших кандидатов строится Pareto frontier минимум по следующим направлениям:
+
+1. эффективность снижения формальдегида;
+2. сохранение эффекта во времени;
+3. запах/летучие выбросы;
+4. скорость высыхания;
+5. изменение размеров;
+6. стоимость.
+
+Дополнительно учитываются видимые следы, совместимость и устойчивость к разбросу дозирования.
+
+Один суммарный рейтинг допускается только как дополнительное представление после того, как пользователю показаны реальные trade-offs.
+
+## 11. Модели
+
+На начальном этапе предпочтительны модели, способные работать с небольшим экспериментальным набором и оценивать неопределённость.
+
+Базовая архитектура:
+
+- Gaussian Process — основной кандидат для surrogate modelling и active learning;
+- tree/ensemble model — независимая проверка нелинейных зависимостей;
+- mixture/interaction analysis — отдельный интерпретируемый слой.
+
+Если данных для конкретного свойства недостаточно, система должна вернуть `insufficient_evidence`, а не строить фиктивно точный прогноз.
+
+Молекулярные foundation models, MACE/DFT и другие тяжёлые методы подключаются только после появления конкретной задачи, где атомистическое моделирование действительно добавляет информацию.
+
+## 12. Программный контур
+
+Первый программный контур работает CPU-only и воспроизводимо в GitHub Actions.
 
 ```text
-docs/
-  product-spec.md
-  discovery-pipeline-and-metrics.md
-
-technology-description/
-  requirements.md
-  change-log.md
-  current.md
-  versions/
-    v001.md
-    v002.md
-    ...
-  manifests/
-    v001.json
-    v002.json
-    ...
-
-data/
-  synthetic/
-  experiments/
-  derived/
+component/constraint data
+        ↓
+candidate generator
+        ↓
+experiment dataset
+        ↓
+endpoint models
+        ↓
+ratio + interaction analysis
+        ↓
+Pareto / uncertainty
+        ↓
+next_experiments.csv
 ```
 
-`rnd-forge` owns the reusable generation engine, prompts/templates and provider adapters. It should consume a **pinned chemistry-repository commit** and return a generated document/version. It must not become the authoritative store for this project's requirements.
+Существующий synthetic benchmark используется только как CI-проверка алгоритма и не смешивается с химическими результатами.
 
-## 14. Requirements/version lifecycle
+## 13. Будущее устройство нанесения
 
-For many iterations, separate current truth from history:
+После выбора работоспособного класса составов может разрабатываться профессиональный аппликатор.
 
-### requirements.md
-Canonical current set of accepted project requirements. Compact enough to be supplied to every generation.
+Его возможные задачи:
 
-### change-log.md
-Append-only record of requirement changes: what changed, why, source/decision, and which generated version first incorporated it.
+- воспроизводимое дозирование;
+- быстрое нанесение вдоль среза;
+- уменьшение загрязнения соседних поверхностей;
+- снижение вариабельности между монтажниками;
+- учёт расхода;
+- при наличии доказанной пользы — контроль покрытия, датчики или электронная идентификация.
 
-### versions/vNN.md
-Immutable generated snapshots.
+Стоимость устройства может оцениваться в логике оснащения ограниченного числа профессиональных бригад, а не массового потребительского продукта.
 
-### current.md
-Convenience copy/pointer to the accepted latest version.
+## 14. Что должно быть получено в результате R&D
 
-### manifests/vNN.json
-Reproducibility metadata: input commit/hashes, requirement revision, generator/template version, model, output hash and validation state.
+Минимальный содержательный результат:
 
-Human feedback starts as a proposed change. Once accepted, it is normalized into `requirements.md`, appended to `change-log.md`, and incorporated into a new immutable document version.
+1. формализованное пространство допустимых компонентов;
+2. экспериментальный набор рецептур и измерений;
+3. карта влияния концентраций и ключевых соотношений;
+4. выявленные синергии/антагонизмы;
+5. Pareto-набор перспективных рецептур;
+6. оценка неопределённости;
+7. подтверждённые лабораторией кандидаты;
+8. требования к способу/дозе нанесения;
+9. следующая программа экспериментов.
 
-## 15. Current unknowns requiring later clarification
+Ценность проекта заключается не только в конкретной конечной рецептуре, но и в воспроизводимом знании о том, **какие химические и технологические соотношения управляют результатом**.
 
-- actual board types/suppliers and emission classes;
-- target formaldehyde reduction and certification/screening protocol;
-- practical maximum installer waiting time;
-- acceptable permanent/transient dimensional changes;
-- odor acceptance criterion and timing;
-- allowed/prohibited chemical components;
-- target cost per order/treated area;
-- typical cut dimensions and total exposed area per order;
-- actual application-dose range;
-- compatibility priorities;
-- laboratory capabilities and available historical formulation data.
+## 15. Данные, которых сейчас не хватает
 
-These are explicit TBD inputs, not values to be guessed by the generator.
+Перед переходом от архитектуры к реальному поиску необходимо уточнить:
 
-## 16. Near-term implementation sequence
+- конкретные марки/типы ДСП и МДФ;
+- класс/уровень исходной эмиссии и имеющиеся измерения;
+- типичные размеры свежих срезов и суммарную площадь на заказ;
+- максимально допустимую задержку монтажника;
+- целевой уровень снижения формальдегида;
+- допустимое изменение толщины/набухание;
+- допустимые/запрещённые компоненты;
+- целевую стоимость обработки;
+- доступные лабораторные методы;
+- исторические опыты/рецептуры, если они существуют;
+- критерий приемлемого запаха и момент его оценки.
 
-1. Preserve the synthetic software benchmark as CI only.
-2. Finalize requirements/change-log/version storage.
-3. Define real experiment/data schemas.
-4. Receive manufacturer/laboratory source data.
-5. Define the first admissible component/search space.
-6. Generate the first mixture DoE batch.
-7. Run and ingest measurements.
-8. Fit endpoint models only where supported.
-9. Produce first real ratio/interaction/Pareto maps.
-10. Select the next experiment batch through active learning.
+Эти значения должны поступить как требования или измеренные данные. Они не должны автоматически достраиваться генератором.
